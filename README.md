@@ -4,6 +4,27 @@
 
 This smart contract prototype mimics the bookkeeping functions of a service-oriented business with multiple owners. Owners can manage capital, propose expenses, vote on various matters, and conclude accounting periods. After each accounting period, profit gets distributed based on each owner's stake at that time.
 
+The accrual method of accounting recognizes financial events when they occur, regardless of when the eth transaction takes place. This smart contract is designed to closely emulate the accrual method by capturing economic events independently of the related eth flows. This ensures a more accurate reflection of the business's financial health over specific accounting periods.
+
+### How It Works
+
+1. **Expense Recognition**: Through the `createExpenseProposal()` function, expenses are recognized when they are incurred, not when they are paid. For instance, if an owner proposes a new business expense for services already received but not yet paid for, the expense is recorded in the system pending approval.
+
+2. **Revenue Recognition**: This smart contract recognizes revenue based on a percentage of gross receipts upon closing of the accounting period. The actual eth flow might have occurred earlier, but revenue is recognized based on the deemed earned percentage when the `proposeCloseAccountingPeriod()` function is invoked.
+
+3. **Accounting Period Closure**: The `proposeCloseAccountingPeriod()` function enables owners to close out an accounting period. This captures all the recognized revenues and expenses for that period and determines the net income or loss. This reflects the essence of the accrual method as it gives a comprehensive view of financial activities over the period, irrespective of eth movement.
+
+4. **Capital Adjustments**: Capital-related functions such as `depositCapital()` and `createCapitalAdjustmentProposal()` allow owners to contribute or adjust their capital without immediately impacting the profit or loss for the period. This ensures that owner contributions or withdrawals don't distort the true operational performance of the business.
+
+### Advantages
+
+By emulating the accrual method, this smart contract offers a more holistic view of the business's financial health. Owners can make informed decisions based on the actual financial performance and not just eth flows.
+
+### Considerations
+
+While the accrual method provides a clearer picture of financial health, it's crucial for owners to also monitor eth flows to ensure the business remains solvent. Future iterations of this smart contract may include more sophisticated eth flow tracking and reporting mechanisms.
+
+
 ## Motivation
 
 Traditional bookkeeping systems rely heavily on segregation of duties, ensuring that no single individual can control all aspects of any critical financial transaction. This segregation ensures accuracy, reliability, and reduces the risk of fraud. However, it comes with overheads:
