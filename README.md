@@ -2,7 +2,7 @@
 
 ## Overview
 
-This smart contract prototype mimics the bookkeeping functions of a service-oriented business with multiple owners. Owners can manage capital, propose expenses, vote on various matters, and conclude accounting periods. After each accounting period, profit gets distributed based on each owner's stake at that time.
+This smart contract prototype mimics the bookkeeping functions of a service-oriented business with multiple owners. Owners can manage capital, propose expenses, issue invoices, and conclude accounting periods. After each accounting period, profit gets distributed based on each owner's stake at that time.
 
 The accrual method of accounting recognizes financial events when they occur, regardless of when the eth transaction takes place. This smart contract is designed to closely emulate the accrual method by capturing economic events independently of the related eth flows. This ensures a more accurate reflection of the business's financial health over specific accounting periods.
 
