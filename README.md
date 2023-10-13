@@ -1,3 +1,66 @@
+# 🏗 Prototype For Business Entity Accounting
+
+## Overview
+
+This smart contract prototype mimics the bookkeeping functions of a service-oriented business with multiple owners. Owners can manage capital, propose expenses, vote on various matters, and conclude accounting periods. After each accounting period, profit gets distributed based on each owner's stake at that time.
+
+## Motivation
+
+Traditional bookkeeping systems rely heavily on segregation of duties, ensuring that no single individual can control all aspects of any critical financial transaction. This segregation ensures accuracy, reliability, and reduces the risk of fraud. However, it comes with overheads:
+
+1. **Complexity**: Establishing a multi-tier approval mechanism.
+2. **Time-consuming**: Multiple approvals lead to process delays.
+3. **Operational Costs**: Requires multiple employees or teams for different roles.
+
+Smart contracts on blockchain inherently bring transparency, immutability, and auditability. By shifting to this Smart Business Accounting System:
+
+- We **eliminate the need for segregation** of duties without compromising on reliability.
+- All transactions are **transparent and verifiable** by all stakeholders.
+- It offers **cost savings** as processes get automated without multiple handovers.
+- **Reduces potential points of failure** due to human errors or malintent.
+
+## Features
+
+1. **Capital Management**: Owners can deposit and adjust their capital.
+2. **Expense Proposals**: Any owner can propose an expense which can be voted upon.
+3. **Revenue Management**: Invoices can be created and managed.
+4. **Accounting Period Closure**: Owners can propose and vote to close accounting periods.
+
+## Quick Note
+
+This is a work-in-progress prototype and is not intended for production use.
+
+## Contract Functions
+
+### Capital
+
+- `depositCapital()`: Deposit funds into the business.
+- `createCapitalAdjustmentProposal()`: Propose changes in capital allocation.
+- `voteForCapitalProposal()`: Vote on capital adjustment proposals.
+
+### Expenses
+
+- `createExpenseProposal()`: Propose a new business expense.
+- `voteForExpenseProposal()`: Vote on proposed expenses.
+- `settleExpense()`: Settle or reject an approved expense.
+
+### Invoices
+
+- `payInvoice()`: Allows external entities to pay invoices.
+
+### Accounting Period
+
+- `proposeCloseAccountingPeriod()`: Propose closing the current accounting period.
+- `voteForClosePeriodProposal()`: Vote on proposals to close accounting periods.
+- `executeCloseAccountingPeriod()`: Execute the closing of an accounting period.
+
+## Contribution
+
+Feel free to contribute to the project by raising issues or proposing pull requests.
+
+
+
+
 # 🏗 Scaffold-ETH 2
 
 <h4 align="center">
