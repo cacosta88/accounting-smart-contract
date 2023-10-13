@@ -67,7 +67,7 @@ contract YourContract {
     error IncorrectAmountSent();
     error InvoiceAlreadyPaid();
     error ClosePeriodProposalNotFound();
-	error OnlyPayorCanPayInvoice();
+    error OnlyPayorCanPayInvoice();
 
 
     event CapitalDeposited(address indexed ownerAddress, uint256 amount);
@@ -80,7 +80,7 @@ contract YourContract {
     event ClosePeriodProposed(uint256 indexed proposalID, uint256 earnedRevenuePercentage);
     event ClosePeriodVoted(address indexed owner, uint256 proposalID, uint256 voteWeight);
     event AccountingPeriodClosed(uint256 indexed proposalID, uint256 earnedRevenuePercentage, uint256 distributableIncome, uint256 earnedGrossReceipts, uint256 totalExpenses, uint256 grossReceipts);
-	event ClearedExpiredExpenseProposal(uint256 indexed proposalID, uint256 amount);
+    event ClearedExpiredExpenseProposal(uint256 indexed proposalID, uint256 amount);
 
     address public admin;
     uint256 public totalCapital;
