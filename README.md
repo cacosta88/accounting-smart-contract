@@ -20,11 +20,6 @@ The accrual method of accounting recognizes financial events when they occur, re
 
 By emulating the accrual method, this smart contract offers a more holistic view of the business's financial health. Owners can make informed decisions based on the actual financial performance and not just eth flows.
 
-### Considerations
-
-While the accrual method provides a clearer picture of financial health, it's crucial for owners to also monitor eth flows to ensure the business remains solvent. Future iterations of this smart contract may include more sophisticated eth flow tracking and reporting mechanisms.
-
-
 ## Motivation
 
 Traditional bookkeeping systems rely heavily on segregation of duties, ensuring that no single individual can control all aspects of any critical financial transaction. This segregation ensures accuracy, reliability, and reduces the risk of fraud. However, it comes with overheads:
