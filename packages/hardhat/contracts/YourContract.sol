@@ -67,7 +67,7 @@ contract YourContract {
     error IncorrectAmountSent();
     error InvoiceAlreadyPaid();
     error ClosePeriodProposalNotFound();
-    error OnlyPayorCanPayInvoice();
+	error OnlyPayorCanPayInvoice();
 
 
     event CapitalDeposited(address indexed ownerAddress, uint256 amount);
@@ -76,11 +76,12 @@ contract YourContract {
     event ExpenseProposed(uint256 indexed expenseID, string description, address recipient, uint256 amount);
     event ExpenseVoted(address indexed owner, uint256 expenseID, uint256 voteWeight);
     event ExpenseSettled(uint256 indexed expenseID, bool toSettle);
+	event InvoiceIssued(uint256 indexed invoiceID, address payor, uint256 amount, uint256 dueDate);
     event InvoicePaid(uint256 indexed invoiceID, address payor, uint256 amount);
     event ClosePeriodProposed(uint256 indexed proposalID, uint256 earnedRevenuePercentage);
     event ClosePeriodVoted(address indexed owner, uint256 proposalID, uint256 voteWeight);
     event AccountingPeriodClosed(uint256 indexed proposalID, uint256 earnedRevenuePercentage, uint256 distributableIncome, uint256 earnedGrossReceipts, uint256 totalExpenses, uint256 grossReceipts);
-    event ClearedExpiredExpenseProposal(uint256 indexed proposalID, uint256 amount);
+	event ClearedExpiredExpenseProposal(uint256 indexed proposalID, uint256 amount);
 
     address public admin;
     uint256 public totalCapital;
@@ -318,7 +319,27 @@ contract YourContract {
 		
     }
 
-    function payInvoice(uint256 invoiceID) external payable {
+	function issueInvoice(
+        address payable _payor,
+        uint256 _amount,
+        uint256 _recognitionPeriod,
+        uint256 _dueDate
+    ) external onlyOwners {
+        Invoice memory newInvoice;
+        newInvoice.payor = _payor;
+        newInvoice.amount = _amount;
+        newInvoice.recognitionPeriod = _recognitionPeriod;
+        newInvoice.dueDate = _dueDate;
+        newInvoice.startRecognitionDate = block.timestamp;
+        newInvoice.isPaid = false;
+
+        invoiceIDs.push(invoiceIDs.length);
+        invoices[invoiceIDs.length] = newInvoice;
+
+        emit InvoiceIssued(invoiceIDs.length, _payor, _amount, _dueDate);
+    }
+    
+	function payInvoice(uint256 invoiceID) external payable {
         Invoice storage invoice = invoices[invoiceID];
         if (invoice.payor != msg.sender) revert OnlyPayorCanPayInvoice();
 		if (invoice.amount != msg.value) revert IncorrectAmountSent();
