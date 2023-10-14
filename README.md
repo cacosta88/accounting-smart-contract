@@ -67,6 +67,7 @@ This is a work-in-progress prototype and is not intended for production use.
 
 ### Invoices
 
+- `issueInvoice()`: Allows owners to issue invoices.
 - `payInvoice()`: Allows external entities to pay invoices.
 
 ### Accounting Period
