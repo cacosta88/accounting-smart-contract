@@ -28,6 +28,7 @@ Traditional bookkeeping systems rely heavily on segregation of duties, ensuring 
 2. **Time-consuming**: Multiple approvals lead to process delays.
 3. **Operational Costs**: Requires multiple employees or teams for different roles.
 
+
 Smart contracts on blockchain inherently bring transparency, immutability, and auditability. By shifting to this Smart Business Accounting System:
 
 - We **eliminate the need for segregation** of duties without compromising on reliability.
