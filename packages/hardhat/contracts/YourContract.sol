@@ -7,506 +7,455 @@ pragma solidity ^0.8.17;
 
 //This is a work-in-progress prototype project and is not intended to be used in production
 
+//open items:
+// for each type of proposal, make sure owner can not vote more than once
+
+
+
 contract YourContract {
-	struct Owner {
-		uint256 capital;
-		uint256 capitalRequirement;
-		uint256 ownershipPercentage;
-		bool isAdded;
-		bool canDeposit;
-		uint256 index;
-	}
+    struct Owner {
+        uint256 capital;
+        uint256 capitalRequirement;
+        bool isAdded;
+        bool canDeposit;
+        uint256 index;
+    }
 
-	struct CapitalAdjustmentProposal {
-		address proposedAddress;
-		uint256 proposedCapital;
-		uint256 votes;
-		uint256 totalOwnershipPercentageAtTimeOfProposal;
-		bool isIncrease;
-		mapping(address => uint256) votesByOwner;
-	}
+    struct CapitalAdjustmentProposal {
+        address proposedAddress;
+        uint256 proposedCapital;
+        uint256 votes;
+        bool isIncrease;
+    }
 
-	struct ExpenseProposal {
-		string description;
-		address recipient;
-		uint256 amount;
-		uint256 votes;
-		bool approved;
-		uint256 settlementDate;
-		mapping(address => uint256) votesByOwner;
-	}
+    struct ExpenseProposal {
+        string description;
+        address recipient;
+        uint256 amount;
+        uint256 votes;
+        bool approved;
+        uint256 settlementDate;
+    }
 
-	struct Invoice {
-		address payable payor;
-		uint256 amount;
-		uint256 recognitionPeriod;
-		uint256 dueDate;
-		uint256 startRecognitionDate;
-		bool isPaid;
-	}
+    struct Invoice {
+        address payable payor;
+        uint256 amount;
+        uint256 recognitionPeriod; 
+        uint256 dueDate; 
+        uint256 startRecognitionDate; 
+        bool isPaid;
+    }
 
-	struct CloseAccountingPeriodProposal {
-		uint256 earnedRevenuePercentage;
-		uint256 votes;
-		bool approved;
-		mapping(address => uint256) votesByOwner;
-	}
+    struct CloseAccountingPeriodProposal {
+        uint256 earnedRevenuePercentage;
+        uint256 votes;
+        bool approved;
+    }
 
-	error OnlyAdmin();
-	error OnlyOwners();
-	error MismatchOwnersCapitalRequirements();
-	error OwnerNotFound();
-	error OwnerCannotDeposit();
-	error ProposalNotFound();
-	error InsufficientOwnershipPercentage();
-	error ExpenseProposalNotFound();
-	error CannotSettleBeforeDate();
-	error ExpenseNotApproved();
-	error TransferFailed();
-	error IncorrectAmountSent();
-	error InvoiceAlreadyPaid();
-	error ClosePeriodProposalNotFound();
+
+    error OnlyAdmin();
+    error OnlyOwners();
+    error MismatchOwnersCapitalRequirements();
+    error OwnerNotFound();
+    error OwnerCannotDeposit();
+    error ProposalNotFound();
+    error CanOnlyVoteOnce();
+    error InsufficientOwnershipPercentage();
+    error ExpenseProposalNotFound();
+    error CannotSettleBeforeDate();
+    error ExpenseNotApproved();
+    error TransferFailed();
+    error IncorrectAmountSent();
+    error InvoiceAlreadyPaid();
+    error ClosePeriodProposalNotFound();
 	error OnlyPayorCanPayInvoice();
+    
 
-	event CapitalDeposited(address indexed ownerAddress, uint256 amount);
-	event CapitalAdjustmentProposed(
-		address indexed proposedAddress,
-		uint256 proposedCapital,
-		bool isIncrease
-	);
-	event CapitalAdjustmentVoted(
-		address indexed owner,
-		uint256 proposalID,
-		uint256 voteWeight
-	);
-	event ExpenseProposed(
-		uint256 indexed expenseID,
-		string description,
-		address recipient,
-		uint256 amount
-	);
-	event ExpenseVoted(
-		address indexed owner,
-		uint256 expenseID,
-		uint256 voteWeight
-	);
-	event ExpenseSettled(uint256 indexed expenseID, bool toSettle);
-	event InvoiceIssued(
-		uint256 indexed invoiceID,
-		address payor,
-		uint256 amount,
-		uint256 dueDate
-	);
-	event InvoicePaid(uint256 indexed invoiceID, address payor, uint256 amount);
-	event ClosePeriodProposed(
-		uint256 indexed proposalID,
-		uint256 earnedRevenuePercentage
-	);
-	event ClosePeriodVoted(
-		address indexed owner,
-		uint256 proposalID,
-		uint256 voteWeight
-	);
-	event AccountingPeriodClosed(
-		uint256 indexed proposalID,
-		uint256 earnedRevenuePercentage,
-		uint256 distributableIncome,
-		uint256 earnedGrossReceipts,
-		uint256 totalExpenses,
-		uint256 grossReceipts
-	);
-	event ClearedExpiredExpenseProposal(
-		uint256 indexed proposalID,
-		uint256 amount
-	);
 
-	address public admin;
-	uint256 public totalCapital;
-	uint256 public earmarkedFunds;
-	mapping(address => Owner) public owners;
-	address[] public ownerAddresses;
-	mapping(uint256 => CapitalAdjustmentProposal)
-		public capitalAdjustmentProposals;
-	mapping(uint256 => ExpenseProposal) public expenseProposals;
-	uint256[] public expenseProposalIDs;
-	mapping(uint256 => Invoice) public invoices;
-	uint256[] public invoiceIDs;
-	uint256 public grossReceipts;
-	uint256 public totalExpenses;
-	mapping(uint256 => CloseAccountingPeriodProposal)
-		public closePeriodProposals;
-	uint256[] public closePeriodProposalIDs;
+    event CapitalDeposited(address indexed ownerAddress, uint256 amount);
+    event CapitalAdjustmentProposed(address indexed proposedAddress, uint256 proposedCapital, bool isIncrease);
+    event CapitalAdjustmentVoted(address indexed owner, uint256 proposalID);
+    event ExpenseProposed(uint256 indexed expenseID, string description, address recipient, uint256 amount);
+    event ExpenseVoted(address indexed owner, uint256 expenseID,uint256 voteWeight);
+    event ExpenseApproved(uint256 indexed expenseID);
+    event ExpenseSettled(uint256 indexed expenseID, bool toSettle);
+	event InvoiceIssued(uint256 indexed invoiceID, address payor, uint256 amount, uint256 dueDate);
+    event InvoicePaid(uint256 indexed invoiceID, address payor, uint256 amount);
+    event ClosePeriodProposed(uint256 indexed proposalID, uint256 earnedRevenuePercentage);
+    event ClosePeriodVoted(address indexed owner, uint256 proposalID);
+    event AccountingPeriodClosed(uint256 indexed proposalID, uint256 earnedRevenuePercentage, uint256 distributableIncome, uint256 earnedGrossReceipts, uint256 totalExpenses, uint256 grossReceipts);
+	event ClearedExpiredExpenseProposal(uint256 indexed proposalID, uint256 amount);
 
-	uint256 public capitalAdjustmentProposalCounter = 0;
-	uint256 public expenseProposalCounter = 0;
-	uint256 public closePeriodProposalCounter = 0;
+    address public admin;
+    uint256 public totalCapital;
+    uint256 public earmarkedFunds;
+    mapping(address => Owner) public owners;
+    address[] public ownerAddresses;
+    mapping(uint256 => CapitalAdjustmentProposal) public capitalAdjustmentProposals;
+    mapping(uint256 => ExpenseProposal) public expenseProposals;
+    uint256[] public expenseProposalIDs;
+    mapping(uint256 => uint256) public expenseProposalIndex;
+    mapping(uint256 => Invoice) public invoices;
+    uint256[] public invoiceIDs;
+    uint256 public grossReceipts;
+    uint256 public totalExpenses;
+    mapping(uint256 => CloseAccountingPeriodProposal) public closePeriodProposals;
+    uint256[] public closePeriodProposalIDs;
+    mapping(uint256 => uint256) public closePeriodProposalIndex;
 
-	constructor(
-		address[] memory initialOwners,
-		uint256[] memory capitalRequirements
-	) {
-		if (initialOwners.length != capitalRequirements.length)
-			revert MismatchOwnersCapitalRequirements();
 
-		admin = msg.sender;
-		for (uint i = 0; i < initialOwners.length; i++) {
-			owners[initialOwners[i]] = Owner(
-				0,
-				capitalRequirements[i],
-				0,
-				true,
-				true,
-				i
-			);
-			ownerAddresses.push(initialOwners[i]);
-		}
-	}
+    uint256 public capitalAdjustmentProposalCounter = 0;
+    uint256 public expenseProposalCounter = 0;
+    uint256 public closePeriodProposalCounter = 0;
 
-	modifier onlyAdmin() {
-		if (msg.sender != admin) revert OnlyAdmin();
-		_;
-	}
 
-	modifier onlyOwners() {
-		if (owners[msg.sender].isAdded == false) revert OwnerNotFound();
-		_;
-	}
+    mapping(uint256 => mapping(address => bool)) public capitalAdjustmentProposalVoters;
+    mapping(uint256 => mapping(address => bool)) public expenseProposalVoters;
+    mapping(uint256 => mapping(address => bool)) public closePeriodProposalVoters;
 
-	function depositCapital(
-		address ownerAddress,
-		uint256 amount
-	) external payable onlyOwners {
+
+    constructor(
+        address[] memory initialOwners,
+        uint256[] memory capitalRequirements
+    ) {
+
+		if (initialOwners.length != capitalRequirements.length) revert MismatchOwnersCapitalRequirements();
+
+        admin = msg.sender;
+        for (uint i = 0; i < initialOwners.length; i++) {
+            owners[initialOwners[i]] = Owner(
+                0,
+                capitalRequirements[i],
+                true,
+                true,
+                i
+            );
+            ownerAddresses.push(initialOwners[i]);
+        }
+	
+    }
+
+    modifier onlyAdmin() {
+        if (msg.sender != admin) revert OnlyAdmin();
+        _;
+
+		
+    }
+
+    modifier onlyOwners() {
+        if (owners[msg.sender].isAdded == false) revert OwnerNotFound();
+        _;
+    }
+
+    function calculateOwnershipPercentage(uint256 ownerCapital) private view returns (uint256) {
+    return (ownerCapital * 100) / totalCapital;
+}
+    
+    function depositCapital(
+        address ownerAddress,
+        uint256 amount
+    ) external payable onlyOwners {
 		if (owners[ownerAddress].isAdded == false) revert OwnerNotFound();
-		if (owners[ownerAddress].canDeposit == false)
-			revert OwnerCannotDeposit();
+		if (owners[ownerAddress].canDeposit == false) revert OwnerCannotDeposit();
 
-		owners[ownerAddress].capital += amount;
-		totalCapital += amount;
+        owners[ownerAddress].capital += amount;
+        totalCapital += amount;
 
-		for (uint i = 0; i < ownerAddresses.length; i++) {
-			address currentOwnerAddress = ownerAddresses[i];
-			if (owners[currentOwnerAddress].capital > 0) {
-				owners[currentOwnerAddress].ownershipPercentage =
-					(owners[currentOwnerAddress].capital * 100) /
-					totalCapital;
-			}
-		}
-		owners[ownerAddress].canDeposit = false;
-		emit CapitalDeposited(ownerAddress, amount);
+        owners[ownerAddress].canDeposit = false;
+    emit CapitalDeposited(ownerAddress, amount);
 	}
+	
 
-	function createCapitalAdjustmentProposal(
-		address _proposedAddress,
-		uint256 _proposedCapital,
-		bool _isIncrease
-	) external onlyOwners {
-		capitalAdjustmentProposalCounter++;
-		CapitalAdjustmentProposal storage proposal = capitalAdjustmentProposals[
-			capitalAdjustmentProposalCounter
-		];
-		proposal.proposedAddress = _proposedAddress;
-		proposal.proposedCapital = _proposedCapital;
-		proposal.votes = owners[msg.sender].ownershipPercentage;
-		proposal.totalOwnershipPercentageAtTimeOfProposal = totalCapital;
-		proposal.isIncrease = _isIncrease;
 
-		if (owners[msg.sender].ownershipPercentage > 50) {
-			owners[proposal.proposedAddress].canDeposit = true;
-			delete capitalAdjustmentProposals[capitalAdjustmentProposalCounter];
-			return;
-		}
+    function createCapitalAdjustmentProposal(
+        address _proposedAddress,
+        uint256 _proposedCapital,
+        bool _isIncrease
+    ) external onlyOwners {
+        capitalAdjustmentProposalCounter++;
+        CapitalAdjustmentProposal storage proposal = capitalAdjustmentProposals[capitalAdjustmentProposalCounter];
+        proposal.proposedAddress = _proposedAddress;
+        proposal.proposedCapital = _proposedCapital;
+        proposal.votes = calculateOwnershipPercentage(_proposedCapital);
+        proposal.isIncrease = _isIncrease;
 
-		if (owners[_proposedAddress].isAdded == false) {
-			owners[_proposedAddress] = Owner(
-				0,
-				_proposedCapital,
-				0,
-				true,
-				false,
-				ownerAddresses.length
-			);
-			ownerAddresses.push(_proposedAddress);
-		} else {
-			owners[_proposedAddress].canDeposit = true;
-		}
-		emit CapitalAdjustmentProposed(
-			_proposedAddress,
-			_proposedCapital,
-			_isIncrease
-		);
-	}
+        if (calculateOwnershipPercentage(owners[msg.sender].capital) > 50) {
+            owners[proposal.proposedAddress].canDeposit = true;
+            delete capitalAdjustmentProposals[capitalAdjustmentProposalCounter];
+            return;
+        }
 
-	function voteForCapitalProposal(
-		uint256 proposalID,
-		uint256 voteWeight
-	) external onlyOwners {
-		if (
-			capitalAdjustmentProposals[proposalID].proposedAddress == address(0)
-		) revert ProposalNotFound();
-		if (owners[msg.sender].ownershipPercentage < voteWeight)
-			revert InsufficientOwnershipPercentage();
+        if (owners[_proposedAddress].isAdded == false) {
+            owners[_proposedAddress] = Owner(
+                0,
+                _proposedCapital,
+                true,
+                false,
+                ownerAddresses.length
+            );
+            ownerAddresses.push(_proposedAddress);
+        } else {
+            owners[_proposedAddress].canDeposit = true;
+        }
+	emit CapitalAdjustmentProposed(_proposedAddress, _proposedCapital, _isIncrease);
+    }
 
-		CapitalAdjustmentProposal storage proposal = capitalAdjustmentProposals[
-			proposalID
-		];
-		proposal.votes += voteWeight;
-		proposal.votesByOwner[msg.sender] = voteWeight;
+    function voteForCapitalProposal(
+        uint256 proposalID
+    ) external onlyOwners {
+		if (capitalAdjustmentProposals[proposalID].proposedAddress == address(0)) revert ProposalNotFound();
+        if (capitalAdjustmentProposalVoters[proposalID][msg.sender]) revert CanOnlyVoteOnce();
 
-		if (
-			proposal.votes * 2 >
-			proposal.totalOwnershipPercentageAtTimeOfProposal
-		) {
-			owners[proposal.proposedAddress].canDeposit = true;
-			delete capitalAdjustmentProposals[proposalID];
-		}
-		emit CapitalAdjustmentVoted(msg.sender, proposalID, voteWeight);
-	}
+        CapitalAdjustmentProposal storage proposal = capitalAdjustmentProposals[proposalID];
+        proposal.votes += calculateOwnershipPercentage(owners[msg.sender].capital);
 
-	function createExpenseProposal(
-		string memory description,
-		address recipient,
-		uint256 amount
-	) external onlyOwners {
-		expenseProposalCounter++;
-		ExpenseProposal storage expenseProposal = expenseProposals[
-			expenseProposalCounter
-		];
-		expenseProposal.description = description;
-		expenseProposal.recipient = recipient;
-		expenseProposal.amount = amount;
-		expenseProposal.settlementDate = block.timestamp;
-		expenseProposal.votes = owners[msg.sender].ownershipPercentage;
+        if (
+            proposal.votes > 50
+        ) {
+            owners[proposal.proposedAddress].canDeposit = true;
+            delete capitalAdjustmentProposals[proposalID];
+        }
+		emit CapitalAdjustmentVoted(msg.sender, proposalID);
+    }
 
-		if (owners[msg.sender].ownershipPercentage > 50) {
-			expenseProposal.approved = true;
-		} else {
-			expenseProposal.approved = false;
-		}
+    function createExpenseProposal(
+        string memory description,
+        address recipient,
+        uint256 amount
+    ) external onlyOwners {
+        expenseProposalCounter++;
+        ExpenseProposal storage expenseProposal = expenseProposals[expenseProposalCounter];
+        expenseProposal.description = description;
+        expenseProposal.recipient = recipient;
+        expenseProposal.amount = amount;
+        expenseProposal.settlementDate = block.timestamp;
+        uint256 initialExpenseProposalVotes = calculateOwnershipPercentage(owners[msg.sender].capital);
+        expenseProposal.votes = initialExpenseProposalVotes ;
 
-		expenseProposalIDs.push(expenseProposalCounter);
 
-		emit ExpenseProposed(
-			expenseProposalCounter,
-			description,
-			recipient,
-			amount
-		);
-	}
+        if (initialExpenseProposalVotes  > 50) {
+            expenseProposal.approved = true;
+        } else {
+            expenseProposal.approved = false;
+        }
 
-	function voteForExpenseProposal(
-		uint256 expenseID,
-		uint256 voteWeight
-	) external onlyOwners {
-		ExpenseProposal storage expenseProposal = expenseProposals[expenseID];
-		if (expenseProposal.recipient == address(0))
-			revert ExpenseProposalNotFound();
-		if (owners[msg.sender].ownershipPercentage < voteWeight)
-			revert InsufficientOwnershipPercentage();
+        expenseProposalIDs.push(expenseProposalCounter);
+        expenseProposalIndex[expenseProposalCounter] = expenseProposalIDs.length - 1;
 
-		expenseProposal.votes += voteWeight;
-		expenseProposal.votesByOwner[msg.sender] = voteWeight;
+		emit ExpenseProposed(expenseProposalCounter, description, recipient, amount);
+    }
 
-		if (expenseProposal.votes * 2 > totalCapital) {
-			expenseProposal.approved = true;
-		}
+    function voteForExpenseProposal(
+        uint256 expenseID
+    ) external onlyOwners {
+        if (expenseProposalVoters[expenseID][msg.sender]) revert CanOnlyVoteOnce();
+        ExpenseProposal storage expenseProposal = expenseProposals[expenseID];
+		if (expenseProposal.recipient == address(0)) revert ExpenseProposalNotFound();
 
-		emit ExpenseVoted(msg.sender, expenseID, voteWeight);
-	}
 
-	function settleExpense(uint256 expenseID, bool toSettle) external {
-		ExpenseProposal storage expenseProposal = expenseProposals[expenseID];
-		if (expenseProposal.recipient == address(0))
-			revert ExpenseProposalNotFound();
+        uint256 votescast = calculateOwnershipPercentage(owners[msg.sender].capital);
+        expenseProposal.votes += votescast;
 
-		if (block.timestamp < expenseProposal.settlementDate)
-			revert CannotSettleBeforeDate();
 
-		if (toSettle) {
-			if (expenseProposal.approved == false) revert ExpenseNotApproved();
-			(bool success, ) = payable(expenseProposal.recipient).call{
-				value: expenseProposal.amount
-			}("");
-			if (!success) revert TransferFailed();
+        if (votescast > 50) {
+            expenseProposal.approved = true;
+            emit ExpenseApproved(expenseID);
 
-			totalExpenses += expenseProposal.amount;
-		} else {
-			earmarkedFunds -= expenseProposal.amount;
-		}
+        }
 
-		for (uint256 i = 0; i < expenseProposalIDs.length; i++) {
-			if (expenseProposalIDs[i] == expenseID) {
-				for (uint256 j = i; j < expenseProposalIDs.length - 1; j++) {
-					expenseProposalIDs[j] = expenseProposalIDs[j + 1];
-				}
+		emit ExpenseVoted(msg.sender, expenseID, votescast);
+    }
 
-				expenseProposalIDs.pop();
-				break;
-			}
-		}
+    function settleExpense(uint256 expenseID, bool toSettle) external onlyOwners {
+    ExpenseProposal storage expenseProposal = expenseProposals[expenseID];
+    if (expenseProposal.recipient == address(0)) revert ExpenseProposalNotFound();
+    if (!expenseProposal.approved) revert ExpenseNotApproved();
+    if (block.timestamp < expenseProposal.settlementDate) revert CannotSettleBeforeDate();
 
-		delete expenseProposals[expenseID];
+    if (toSettle) {
+        (bool success,) = payable(expenseProposal.recipient).call{value: expenseProposal.amount}("");
+        require(success, "TransferFailed");
 
-		emit ExpenseSettled(expenseID, toSettle);
-	}
+        totalExpenses += expenseProposal.amount;
+    } else {
+        earmarkedFunds -= expenseProposal.amount;
+    }
 
-	function clearExpiredProposals() external onlyAdmin {
-		for (uint256 i = 0; i < expenseProposalIDs.length; i++) {
-			uint256 expenseID = expenseProposalIDs[i];
-			ExpenseProposal storage proposal = expenseProposals[expenseID];
+    uint256 lastExpenseID = expenseProposalIDs[expenseProposalIDs.length - 1];
+    uint256 expenseIndex = expenseProposalIndex[expenseID];
+    expenseProposalIDs[expenseIndex] = lastExpenseID;
+    expenseProposalIndex[lastExpenseID] = expenseIndex;
+    expenseProposalIDs.pop();
 
-			if (
-				block.timestamp > proposal.settlementDate + 1 days &&
-				!proposal.approved
-			) {
-				earmarkedFunds -= proposal.amount;
-				delete expenseProposals[expenseID];
+    delete expenseProposals[expenseID];
+    emit ExpenseSettled(expenseID, toSettle);
+}
 
-				for (uint256 j = i; j < expenseProposalIDs.length - 1; j++) {
-					expenseProposalIDs[j] = expenseProposalIDs[j + 1];
-				}
+    function clearExpiredProposals() external onlyAdmin {
+        for (uint256 i = 0; i < expenseProposalIDs.length; i++) {
+            uint256 expenseID = expenseProposalIDs[i];
+            ExpenseProposal storage proposal = expenseProposals[expenseID];
 
-				expenseProposalIDs.pop();
-				i--;
-			}
-			emit ClearedExpiredExpenseProposal(expenseID, proposal.amount);
-		}
-	}
+            if (
+                block.timestamp > proposal.settlementDate + 1 days &&
+                !proposal.approved
+            ) {
+                earmarkedFunds -= proposal.amount;
+                delete expenseProposals[expenseID];
+
+
+                for (uint256 j = i; j < expenseProposalIDs.length - 1; j++) {
+                    expenseProposalIDs[j] = expenseProposalIDs[j + 1];
+                }
+
+
+                expenseProposalIDs.pop();
+                i--; 
+            }
+        emit ClearedExpiredExpenseProposal(expenseID, proposal.amount);
+        }
+		
+    }
 
 	function issueInvoice(
-		address payable _payor,
-		uint256 _amount,
-		uint256 _recognitionPeriod,
-		uint256 _dueDate
-	) external onlyOwners {
-		Invoice memory newInvoice;
-		newInvoice.payor = _payor;
-		newInvoice.amount = _amount;
-		newInvoice.recognitionPeriod = _recognitionPeriod;
-		newInvoice.dueDate = _dueDate;
-		newInvoice.startRecognitionDate = block.timestamp;
-		newInvoice.isPaid = false;
+        address payable _payor,
+        uint256 _amount,
+        uint256 _recognitionPeriod,
+        uint256 _dueDate
+    ) external onlyOwners {
+        Invoice memory newInvoice;
+        newInvoice.payor = _payor;
+        newInvoice.amount = _amount;
+        newInvoice.recognitionPeriod = _recognitionPeriod;
+        newInvoice.dueDate = _dueDate;
+        newInvoice.startRecognitionDate = block.timestamp;
+        newInvoice.isPaid = false;
 
-		invoiceIDs.push(invoiceIDs.length);
-		invoices[invoiceIDs.length] = newInvoice;
+        invoiceIDs.push(invoiceIDs.length);
+        invoices[invoiceIDs.length] = newInvoice;
 
-		emit InvoiceIssued(invoiceIDs.length, _payor, _amount, _dueDate);
-	}
-
+        emit InvoiceIssued(invoiceIDs.length, _payor, _amount, _dueDate);
+    }
+    
 	function payInvoice(uint256 invoiceID) external payable {
-		Invoice storage invoice = invoices[invoiceID];
-		if (invoice.payor != msg.sender) revert OnlyPayorCanPayInvoice();
+        Invoice storage invoice = invoices[invoiceID];
+        if (invoice.payor != msg.sender) revert OnlyPayorCanPayInvoice();
 		if (invoice.amount != msg.value) revert IncorrectAmountSent();
 		if (invoice.isPaid) revert InvoiceAlreadyPaid();
 
-		invoice.isPaid = true;
-		grossReceipts += msg.value;
+        invoice.isPaid = true;
+        grossReceipts += msg.value;
 		emit InvoicePaid(invoiceID, msg.sender, msg.value);
-	}
+    }
 
-	function proposeCloseAccountingPeriod(
-		uint256 earnedRevenuePercentage
-	) external onlyOwners {
-		closePeriodProposalCounter++;
-		CloseAccountingPeriodProposal storage proposal = closePeriodProposals[
-			closePeriodProposalCounter
-		];
-		proposal.earnedRevenuePercentage = earnedRevenuePercentage;
-		proposal.votes = owners[msg.sender].ownershipPercentage;
+    function proposeCloseAccountingPeriod(uint256 earnedRevenuePercentage) external onlyOwners {
+        closePeriodProposalCounter++;
+        CloseAccountingPeriodProposal storage proposal = closePeriodProposals[closePeriodProposalCounter];
+        proposal.earnedRevenuePercentage = earnedRevenuePercentage;
+        uint256 initialOwnershipPercentage = calculateOwnershipPercentage(owners[msg.sender].capital);
+        proposal.votes = initialOwnershipPercentage;
 
-		if (owners[msg.sender].ownershipPercentage > 50) {
-			proposal.approved = true;
-		} else {
-			proposal.approved = false;
-		}
+        if (initialOwnershipPercentage > 50) {
+            proposal.approved = true;
+        } 
 
-		closePeriodProposalIDs.push(closePeriodProposalCounter);
+        closePeriodProposalIDs.push(closePeriodProposalCounter);
 
-		emit ClosePeriodProposed(
-			closePeriodProposalCounter,
-			earnedRevenuePercentage
-		);
-	}
+		emit ClosePeriodProposed(closePeriodProposalCounter, earnedRevenuePercentage);
+    }
 
-	function voteForClosePeriodProposal(
-		uint256 proposalID,
-		uint256 voteWeight
-	) external onlyOwners {
-		CloseAccountingPeriodProposal storage proposal = closePeriodProposals[
-			proposalID
-		];
-		if (proposal.earnedRevenuePercentage == 0)
-			revert ClosePeriodProposalNotFound();
-		if (owners[msg.sender].ownershipPercentage < voteWeight)
-			revert InsufficientOwnershipPercentage();
 
-		proposal.votes += voteWeight;
-		proposal.votesByOwner[msg.sender] = voteWeight;
+    function voteForClosePeriodProposal(uint256 proposalID) external onlyOwners {
+        if (closePeriodProposalVoters[proposalID][msg.sender]) revert CanOnlyVoteOnce();
+        CloseAccountingPeriodProposal storage proposal = closePeriodProposals[proposalID];
+        if (proposal.earnedRevenuePercentage == 0) revert ClosePeriodProposalNotFound();
 
-		if (proposal.votes * 2 > totalCapital) {
-			proposal.approved = true;
-		}
+        uint256 voteCast = calculateOwnershipPercentage(owners[msg.sender].capital);
+        proposal.votes += voteCast;
 
-		emit ClosePeriodVoted(msg.sender, proposalID, voteWeight);
-	}
 
-	function executeCloseAccountingPeriod(
-		uint256 proposalID
-	) external onlyOwners {
-		CloseAccountingPeriodProposal storage proposal = closePeriodProposals[
-			proposalID
-		];
+        if (voteCast > 50) {
+            proposal.approved = true;
+        }
+
+		emit ClosePeriodVoted(msg.sender, proposalID);
+    }
+
+    function executeCloseAccountingPeriod(uint256 proposalID) external onlyOwners {
+        CloseAccountingPeriodProposal storage proposal = closePeriodProposals[proposalID];
 		if (proposal.approved == false) revert ClosePeriodProposalNotFound();
 
-		uint256 earnedGrossReceipts = (grossReceipts *
-			proposal.earnedRevenuePercentage) / 100;
-		uint256 distributableIncome = 0;
-		if (earnedGrossReceipts > totalExpenses) {
-			distributableIncome = earnedGrossReceipts - totalExpenses;
-		}
+        uint256 earnedGrossReceipts = (grossReceipts * proposal.earnedRevenuePercentage) / 100;
+        uint256 distributableIncome = 0;
+        if (earnedGrossReceipts > totalExpenses) {
+            distributableIncome = earnedGrossReceipts - totalExpenses;
+        }
 
-		grossReceipts -= earnedGrossReceipts;
-		totalExpenses = 0;
+        grossReceipts -= earnedGrossReceipts;
+        totalExpenses = 0;
 
-		if (distributableIncome > 0) {
-			for (uint i = 0; i < ownerAddresses.length; i++) {
-				address currentOwnerAddress = ownerAddresses[i];
-				uint256 ownershipPercentage = owners[currentOwnerAddress]
-					.ownershipPercentage;
-				uint256 ownerShare = (distributableIncome *
-					ownershipPercentage) / 100;
-				if (ownerShare > 0) {
-					(bool success, ) = payable(currentOwnerAddress).call{
-						value: ownerShare
-					}("");
+        if (distributableIncome > 0) {
+            for (uint i = 0; i < ownerAddresses.length; i++) {
+                address currentOwnerAddress = ownerAddresses[i];
+                uint256 ownershipPercentage = calculateOwnershipPercentage(owners[currentOwnerAddress].capital);
+                uint256 ownerShare = (distributableIncome * ownershipPercentage) / 100;
+                if (ownerShare > 0) {
+                    (bool success, ) = payable(currentOwnerAddress).call{value: ownerShare}("");
 					if (!success) revert TransferFailed();
-				}
-			}
-		}
+                }
+            }}
+        
+		emit AccountingPeriodClosed(proposalID, proposal.earnedRevenuePercentage, distributableIncome, earnedGrossReceipts, totalExpenses, grossReceipts);
 
-		emit AccountingPeriodClosed(
-			proposalID,
-			proposal.earnedRevenuePercentage,
-			distributableIncome,
-			earnedGrossReceipts,
-			totalExpenses,
-			grossReceipts
-		);
 
-		for (uint256 i = 0; i < closePeriodProposalIDs.length; i++) {
-			if (closePeriodProposalIDs[i] == proposalID) {
-				for (
-					uint256 j = i;
-					j < closePeriodProposalIDs.length - 1;
-					j++
-				) {
-					closePeriodProposalIDs[j] = closePeriodProposalIDs[j + 1];
-				}
+        uint256 lastProposalID = closePeriodProposalIDs[closePeriodProposalIDs.length - 1];
+        uint256 proposalIndex = closePeriodProposalIndex[proposalID];
+        closePeriodProposalIDs[proposalIndex] = lastProposalID;
+        closePeriodProposalIndex[lastProposalID] = proposalIndex;
+        closePeriodProposalIDs.pop();
 
-				closePeriodProposalIDs.pop();
-				break;
-			}
-		}
 
 		delete closePeriodProposals[proposalID];
-	}
+        emit AccountingPeriodClosed(proposalID, proposal.earnedRevenuePercentage, distributableIncome, earnedGrossReceipts, totalExpenses, grossReceipts);
+    
+} 
+
+
+
+    function getOwnerAddresses() external view returns (address[] memory) {
+        return ownerAddresses;
+    }
+
+
+    function getOwnerDetails(address _address   ) external view returns (uint256[] memory) {
+        uint256[] memory ownerDetails = new uint256[](5);
+        ownerDetails[0] = owners[_address  ].capital;
+        ownerDetails[1] = owners[_address  ].capitalRequirement;
+        ownerDetails[3] = owners[_address  ].isAdded ? 1 : 0;
+        ownerDetails[4] = owners[_address  ].canDeposit ? 1 : 0;
+        return ownerDetails;
+    }
+
+    function getExpenseProposalIDs() external view returns (uint256[] memory) {
+        return expenseProposalIDs;
+    }
+
+    function getInvoiceIDs() external view returns (uint256[] memory) {
+        return invoiceIDs;
+    }
+
+    function getClosePeriodProposalIDs() external view returns (uint256[] memory) {
+        return closePeriodProposalIDs;
+    }
+
+    function getCapitalAdjustmentProposal(uint256 proposalID) external view returns (address, uint256, uint256, bool) {
+        CapitalAdjustmentProposal storage proposal = capitalAdjustmentProposals[proposalID];
+        return (proposal.proposedAddress, proposal.proposedCapital, proposal.votes, proposal.isIncrease);
+    }
+
+    function getExpenseProposal(uint256 expenseID) external view returns (string memory, address, uint256, uint256, bool) {
+        ExpenseProposal storage proposal = expenseProposals[expenseID];
+        return (proposal.description, proposal.recipient, proposal.amount, proposal.votes, proposal.approved);
+    }
+
 }
